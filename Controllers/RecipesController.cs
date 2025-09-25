@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FridgeBackend.Models;
+using FridgeBackend.Services;
 
 namespace FridgeBackend.Controllers
 {
@@ -14,10 +15,18 @@ namespace FridgeBackend.Controllers
     public class RecipesController : ControllerBase
     {
         private readonly RecipeContext _context;
+        private readonly RecipeService _recipeService;
 
         public RecipesController(RecipeContext context)
         {
             _context = context;
+        }
+        
+        
+        // Inject the RecipeService here
+        public RecipesController(RecipeService recipeService)
+        {
+            _recipeService = recipeService;
         }
         
         // A DTO (Data Transfer Object) is good practice for request bodies
