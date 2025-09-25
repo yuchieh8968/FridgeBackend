@@ -19,6 +19,14 @@ namespace FridgeBackend.Controllers
         {
             _context = context;
         }
+        
+        // A DTO (Data Transfer Object) is good practice for request bodies
+        public class CreateRecipeRequest
+        {
+            public int UserId { get; set; }
+            public required string Name { get; set; }
+            public string Description { get; set; } = "";
+        }
 
         // GET: api/Recipes
         [HttpGet]
@@ -72,6 +80,26 @@ namespace FridgeBackend.Controllers
             return NoContent();
         }
 
+        [HttpPost]
+        public async Task<IActionResult> CreateRecipe(CreateRecipeRequest request)
+        {
+            // The controller's job is simple: call the service...
+            var createdRecipe = await _recipeService.CreateRecipeForUserAsync(
+                request.UserId, 
+                request.Name, 
+                request.Description
+            );
+
+            // ...and handle the HTTP response.
+            if (createdRecipe == null)
+            {
+                return NotFound($"User with ID {request.UserId} not found.");
+            }
+
+            // Return a 201 Created status with the new recipe
+            return CreatedAtAction(nameof(GetRecipe), new { id = createdRecipe.Id }, createdRecipe);
+        }
+        
         // POST: api/Recipes
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
