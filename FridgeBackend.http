@@ -1,0 +1,6 @@
+@FridgeBackend_HostAddress = http://localhost:5023
+
+GET {{FridgeBackend_HostAddress}}/api/
+Accept: application/json
+
+###
