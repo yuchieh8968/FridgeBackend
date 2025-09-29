@@ -18,7 +18,7 @@ DROP DATABASE fridge;
 ```
 Migration
 ```aiignore
-dotnet ef migrations add InitialCreate
+dotnet ef migrations add FixComments4
 dotnet ef database update
 
 ```

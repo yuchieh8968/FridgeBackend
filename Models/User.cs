@@ -16,14 +16,18 @@ public class User
     [MaxLength(30)]
     public required string Email { get; set; }
     
+    [JsonIgnore] // Prevent circular reference: Comment -> Author -> CreatedRecipes -> Comments
     public ICollection<Recipe> CreatedRecipes { get; set; } = new List<Recipe>();
 
     [NotMapped]
+    [JsonIgnore] // Also ignore these since they're not mapped
     public ICollection<Recipe> SavedRecipes { get; set; } = new List<Recipe>();
 
     [NotMapped]
+    [JsonIgnore]
     public ICollection<Recipe> LikedRecipes { get; set; } = new List<Recipe>();
 
     [NotMapped]
+    [JsonIgnore]
     public ICollection<Ingredient> ExistingIngredients { get; set; } = new List<Ingredient>();
 }

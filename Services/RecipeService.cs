@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace FridgeBackend.Services;
 
 using FridgeBackend.Models;
@@ -6,13 +8,49 @@ public class RecipeService
 {
     private readonly RecipeContext _context;
 
-    // Inject the DbContext using the constructor
     public RecipeService(RecipeContext context)
     {
         _context = context;
     }
+    
+    public async Task<Comment?> CreateCommentForUserRecipeAsync(int recipeId, int userId, string commentBody)
+    {
+        // Load the recipe together with its Comments collection so EF tracks the relationship properly
+        var recipe = await _context.Recipes
+            .Include(r => r.Comments)
+            .FirstOrDefaultAsync(r => r.Id == recipeId);
+        if (recipe == null)
+        {
+            return null;
+        }
 
-    // THIS IS WHERE YOUR "SYNC CODE" / LOGIC GOES
+        // (Optional but safer) ensure the user exists
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return null;
+        }
+
+        // Create the comment and link both sides explicitly
+        var newComment = new Comment
+        {
+            Body = commentBody,
+            RecipeId = recipeId,
+            AuthorUId = userId,
+            Recipe = recipe
+        };
+
+        // Persist new comment
+        _context.Comments.Add(newComment);
+
+        // Keep in-memory navigation in sync (so recipe.Comments contains it immediately)
+        recipe.Comments.Add(newComment);
+
+        await _context.SaveChangesAsync();
+
+        return newComment;
+    }
+
     public async Task<Recipe?> CreateRecipeForUserAsync(int userId, string recipeName, string description)
     {
         // 1. Find the user
@@ -38,4 +76,5 @@ public class RecipeService
         // 4. Return the created recipe
         return newRecipe;
     }
+    
 }

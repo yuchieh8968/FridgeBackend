@@ -13,11 +13,14 @@ public class Comment
     [MaxLength(300)]
     public required string Body { get; set; }
 
-    public DateTime Date { get; set; }
+    public int AuthorUId { get; set; } // Foreign key
 
-    // FK back to Recipe
+    [ForeignKey(nameof(AuthorUId))]
+    public User? Author { get; set; } // Navigation property to the User
+
+    // Remove [JsonIgnore] from RecipeId - we need it for deserialization
     public int RecipeId { get; set; }
-    
-    [JsonIgnore] // Prevents circular reference Recipe -> Comments -> Recipe -> Comments...
+
+    [JsonIgnore] // Only ignore the navigation property to prevent circular references
     public Recipe? Recipe { get; set; } // Made nullable - EF will handle the relationship
 }

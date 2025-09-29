@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FridgeBackend.Models;
+using FridgeBackend.Services;
 
 namespace FridgeBackend.Controllers
 {
@@ -14,24 +15,40 @@ namespace FridgeBackend.Controllers
     public class CommentsController : ControllerBase
     {
         private readonly RecipeContext _context;
+        private readonly RecipeService _recipeService;
 
-        public CommentsController(RecipeContext context)
+        public CommentsController(RecipeContext context, RecipeService recipeService)
         {
             _context = context;
-        }
+            _recipeService = recipeService;
 
+        }
+        
+        // A DTO (Data Transfer Object) for the request body
+        public class CreateCommentRequest
+        {                
+            public int AuthorUId { get; set; }
+            public int RecipeId { get; set; } // Changed from string to int
+
+            public required string Body { get; set; }
+        }
+        
         // GET: api/Comments
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Comment>>> GetComments()
         {
-            return await _context.Comments.ToListAsync();
+            return await _context.Comments
+                .Include(c => c.Author) // Include author information
+                .ToListAsync();
         }
 
         // GET: api/Comments/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Comment>> GetComment(int id)
         {
-            var comment = await _context.Comments.FindAsync(id);
+            var comment = await _context.Comments
+                .Include(c => c.Author) // Include author information
+                .FirstOrDefaultAsync(c => c.Id == id);
 
             if (comment == null)
             {
@@ -75,12 +92,21 @@ namespace FridgeBackend.Controllers
         // POST: api/Comments
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Comment>> PostComment(Comment comment)
+        public async Task<IActionResult> PostComment(CreateCommentRequest request) // Fixed method name and parameter name
         {
-            _context.Comments.Add(comment);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetComment", new { id = comment.Id }, comment);
+            var createdComment = await _recipeService.CreateCommentForUserRecipeAsync(
+                request.RecipeId,    // Fixed parameter order to match service method
+                request.AuthorUId,   // Fixed parameter order to match service method
+                request.Body
+            );
+    
+            if (createdComment == null)
+            {
+                return NotFound($"User with ID {request.AuthorUId} or Recipe with ID {request.RecipeId} not found.");
+            }
+            
+            // Return the comment created by the service, not the original parameter
+            return CreatedAtAction(nameof(GetComment), new { id = createdComment.Id }, createdComment);
         }
 
         // DELETE: api/Comments/5

@@ -14,22 +14,18 @@ namespace FridgeBackend.Controllers
     [ApiController]
     public class RecipesController : ControllerBase
     {
+        // Keep both fields
         private readonly RecipeContext _context;
         private readonly RecipeService _recipeService;
 
-        public RecipesController(RecipeContext context)
+        // ✅ Use a SINGLE constructor to inject ALL dependencies
+        public RecipesController(RecipeContext context, RecipeService recipeService)
         {
             _context = context;
-        }
-        
-        
-        // Inject the RecipeService here
-        public RecipesController(RecipeService recipeService)
-        {
             _recipeService = recipeService;
         }
         
-        // A DTO (Data Transfer Object) is good practice for request bodies
+        // A DTO (Data Transfer Object) for the request body
         public class CreateRecipeRequest
         {
             public int UserId { get; set; }
@@ -41,14 +37,20 @@ namespace FridgeBackend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Recipe>>> GetRecipes()
         {
-            return await _context.Recipes.ToListAsync();
+            // Note: In a full refactor, this logic would also move to the RecipeService
+            return await _context.Recipes
+                .Include(r => r.Comments)
+                .ThenInclude(c => c.Author)
+                .ToListAsync();
         }
-
-        // GET: api/Recipes/5
+        
         [HttpGet("{id}")]
         public async Task<ActionResult<Recipe>> GetRecipe(int id)
         {
-            var recipe = await _context.Recipes.FindAsync(id);
+            var recipe = await _context.Recipes
+                .Include(r => r.Comments)
+                .ThenInclude(c => c.Author)
+                .FirstOrDefaultAsync(r => r.Id == id);
 
             if (recipe == null)
             {
@@ -59,7 +61,6 @@ namespace FridgeBackend.Controllers
         }
 
         // PUT: api/Recipes/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutRecipe(int id, Recipe recipe)
         {
@@ -88,38 +89,24 @@ namespace FridgeBackend.Controllers
 
             return NoContent();
         }
-
+        
         [HttpPost]
         public async Task<IActionResult> CreateRecipe(CreateRecipeRequest request)
         {
-            // The controller's job is simple: call the service...
             var createdRecipe = await _recipeService.CreateRecipeForUserAsync(
                 request.UserId, 
                 request.Name, 
                 request.Description
             );
 
-            // ...and handle the HTTP response.
             if (createdRecipe == null)
             {
                 return NotFound($"User with ID {request.UserId} not found.");
             }
-
-            // Return a 201 Created status with the new recipe
+            
             return CreatedAtAction(nameof(GetRecipe), new { id = createdRecipe.Id }, createdRecipe);
         }
         
-        // POST: api/Recipes
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Recipe>> PostRecipe(Recipe recipe)
-        {
-            _context.Recipes.Add(recipe);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetRecipe", new { id = recipe.Id }, recipe);
-        }
-
         // DELETE: api/Recipes/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRecipe(int id)
