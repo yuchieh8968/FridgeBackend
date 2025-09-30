@@ -15,7 +15,6 @@ public class RecipeService
     
     public async Task<Comment?> CreateCommentForUserRecipeAsync(int recipeId, int userId, string commentBody)
     {
-        // Load the recipe together with its Comments collection so EF tracks the relationship properly
         var recipe = await _context.Recipes
             .Include(r => r.Comments)
             .FirstOrDefaultAsync(r => r.Id == recipeId);
@@ -24,14 +23,12 @@ public class RecipeService
             return null;
         }
 
-        // (Optional but safer) ensure the user exists
         var user = await _context.Users.FindAsync(userId);
         if (user == null)
         {
             return null;
         }
 
-        // Create the comment and link both sides explicitly
         var newComment = new Comment
         {
             Body = commentBody,
@@ -66,13 +63,15 @@ public class RecipeService
         {
             Name = recipeName,
             Description = description,
+            AuthorUId = userId,
             Author = user // Let EF handle the foreign key
         };
-
+        
         // 3. Add to the context and save
         _context.Recipes.Add(newRecipe);
+        user.CreatedRecipes.Add(newRecipe);
         await _context.SaveChangesAsync();
-
+        
         // 4. Return the created recipe
         return newRecipe;
     }

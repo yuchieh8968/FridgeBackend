@@ -16,7 +16,7 @@ public class User
     [MaxLength(30)]
     public required string Email { get; set; }
     
-    [JsonIgnore] // Prevent circular reference: Comment -> Author -> CreatedRecipes -> Comments
+    [InverseProperty(nameof(Recipe.Author))]
     public ICollection<Recipe> CreatedRecipes { get; set; } = new List<Recipe>();
 
     [NotMapped]
